@@ -301,6 +301,153 @@ console.log('Tokens:', TOKENS);
 console.log('Embedding[0] (The):', modelConfig.embeddings[0]);
 console.log('Weights row 0:', attentionData.weights[0]);
 console.log('Sum of row 0:', attentionData.weights[0].reduce((a, b) => a + b, 0));
+
+// --- Task 3: Token rendering ---
+function renderTokens() {
+    const display = document.getElementById('text-display');
+    display.textContent = '';
+    TOKENS.forEach((token, i) => {
+        const span = document.createElement('span');
+        span.textContent = token;
+        span.classList.add('token');
+        span.dataset.index = i;
+        span.id = `token-${i}`;
+        display.appendChild(span);
+    });
+}
+
+// --- SVG line drawing helpers ---
+function getTokenCenter(index) {
+    const span = document.getElementById(`token-${index}`);
+    const panel = document.getElementById('text-panel');
+    if (!span || !panel) return null;
+    const sr = span.getBoundingClientRect();
+    const pr = panel.getBoundingClientRect();
+    return {
+        x: sr.left - pr.left + sr.width / 2,
+        y: sr.top - pr.top + sr.height * 0.6
+    };
+}
+
+function drawAttentionLines(queryIdx) {
+    const svg = document.getElementById('svg-overlay');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const weights = attentionData.weights[queryIdx];
+    const targetPos = getTokenCenter(queryIdx);
+    if (!targetPos) return;
+
+    weights.forEach((w, keyIdx) => {
+        if (w < 0.01 || keyIdx > queryIdx) return;
+        const sourcePos = getTokenCenter(keyIdx);
+        if (!sourcePos) return;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', sourcePos.x);
+        line.setAttribute('y1', sourcePos.y);
+        line.setAttribute('x2', targetPos.x);
+        line.setAttribute('y2', targetPos.y);
+        // Interpolate red to orange based on weight
+        const r = Math.round(233 + w * (245 - 233));
+        const g = Math.round(69 + w * (166 - 69));
+        const b = Math.round(96 + w * (35 - 96));
+        line.setAttribute('stroke', `rgb(${r}, ${g}, ${b})`);
+        line.setAttribute('stroke-width', 0.5 + w * 7.5);
+        line.setAttribute('opacity', 0.2 + w * 0.8);
+        line.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(line);
+    });
+}
+
+function drawSingleAttentionLine(queryIdx, keyIdx) {
+    const svg = document.getElementById('svg-overlay');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const w = attentionData.weights[queryIdx][keyIdx];
+    const sourcePos = getTokenCenter(keyIdx);
+    const targetPos = getTokenCenter(queryIdx);
+    if (!sourcePos || !targetPos) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', sourcePos.x);
+    line.setAttribute('y1', sourcePos.y);
+    line.setAttribute('x2', targetPos.x);
+    line.setAttribute('y2', targetPos.y);
+    const r = Math.round(233 + w * (245 - 233));
+    const g = Math.round(69 + w * (166 - 69));
+    const b = Math.round(96 + w * (35 - 96));
+    line.setAttribute('stroke', `rgb(${r}, ${g}, ${b})`);
+    line.setAttribute('stroke-width', 0.5 + w * 7.5);
+    line.setAttribute('opacity', 0.2 + w * 0.8);
+    line.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(line);
+}
+
+// --- State stubs (replaced in later tasks) ---
+let clickState = null;
+
+function renderHeatmap() {} // no-op until Task 4
+function renderComputationSummary() {} // no-op until Task 5
+
+function clearHoverState() {
+    document.querySelectorAll('.token').forEach(s => {
+        s.classList.remove('active', 'key-highlight');
+        s.style.borderColor = 'transparent';
+        s.style.borderWidth = '';
+    });
+    const svg = document.getElementById('svg-overlay');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+}
+
+function clearAllHighlights() {
+    clearHoverState();
+    renderHeatmap();
+    const content = document.getElementById('computation-content');
+    content.textContent = '';
+    const p = document.createElement('p');
+    p.className = 'placeholder';
+    p.textContent = 'Hover a token or click a heatmap cell';
+    content.appendChild(p);
+}
+
+function hoverQuery(queryIdx) {
+    if (clickState) return;
+    highlightTokens(queryIdx);
+    drawAttentionLines(queryIdx);
+}
+
+// --- Token highlighting ---
+function highlightTokens(queryIdx) {
+    document.querySelectorAll('.token').forEach(s => {
+        s.classList.remove('active', 'key-highlight');
+        s.style.borderColor = 'transparent';
+        s.style.borderWidth = '';
+    });
+    const querySpan = document.getElementById(`token-${queryIdx}`);
+    if (querySpan) querySpan.classList.add('active');
+
+    const weights = attentionData.weights[queryIdx];
+    weights.forEach((w, keyIdx) => {
+        if (w < 0.01 || keyIdx === queryIdx || keyIdx > queryIdx) return;
+        const span = document.getElementById(`token-${keyIdx}`);
+        if (span) {
+            span.style.borderColor = '#f5a623';
+            span.style.borderWidth = `${1 + w * 3}px`;
+        }
+    });
+}
+
+// --- Event listeners + initialization ---
+document.getElementById('text-display').addEventListener('mouseover', e => {
+    if (!e.target.classList.contains('token')) return;
+    if (clickState) return;
+    const idx = parseInt(e.target.dataset.index, 10);
+    hoverQuery(idx);
+});
+
+document.getElementById('text-panel').addEventListener('mouseleave', () => {
+    if (!clickState) clearAllHighlights();
+});
+
+// Initialize
+renderTokens();
 </script>
 </body>
 </html>
