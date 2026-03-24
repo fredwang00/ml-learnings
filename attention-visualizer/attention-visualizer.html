@@ -313,7 +313,7 @@ let currentHead = 0;
 let attentionData = computeAttention(TOKENS, modelConfig.embeddings, modelConfig.heads[currentHead]);
 
 
-// --- Task 3: Token rendering ---
+// --- Token rendering ---
 function renderTokens() {
     const display = document.getElementById('text-display');
     display.textContent = '';
@@ -391,16 +391,18 @@ function drawSingleAttentionLine(queryIdx, keyIdx) {
     svg.appendChild(line);
 }
 
-// --- State stubs (replaced in later tasks) ---
+// --- Interaction state ---
 let clickState = null;
 
+// --- Heatmap ---
 let heatmapCellSize = 0;
 let heatmapLabelOffset = 0;
 
 function weightToColor(w) {
-    const r = Math.round(w * 245 + 10);
-    const g = Math.round(w * 166);
-    const b = Math.round(w * 35);
+    // black → orange → yellow scale
+    const r = Math.round(Math.min(255, w * 2 * 245 + 10));
+    const g = Math.round(w < 0.5 ? w * 2 * 166 : 166 + (w - 0.5) * 2 * (255 - 166));
+    const b = Math.round(w < 0.5 ? w * 2 * 35 : 35 * (1 - (w - 0.5) * 2));
     return `rgb(${r}, ${g}, ${b})`;
 }
 
@@ -503,6 +505,8 @@ function updateAllPanels() {
         clearAllHighlights();
     }
 }
+
+// --- Computation panel ---
 function renderComputationSummary(queryIdx) {
     const container = document.getElementById('computation-content');
     container.textContent = '';
@@ -688,7 +692,6 @@ function hoverQuery(queryIdx) {
     renderComputationSummary(queryIdx);
 }
 
-// --- Token highlighting ---
 function highlightTokens(queryIdx) {
     document.querySelectorAll('.token').forEach(s => {
         s.classList.remove('active', 'key-highlight');
@@ -709,7 +712,7 @@ function highlightTokens(queryIdx) {
     });
 }
 
-// --- Event listeners + initialization ---
+// --- Event listeners ---
 document.getElementById('text-display').addEventListener('mouseover', e => {
     if (!e.target.classList.contains('token')) return;
     if (clickState) return;
@@ -735,15 +738,7 @@ document.querySelectorAll('.head-pill').forEach(btn => {
         btn.classList.add('active');
         attentionData = computeAttention(TOKENS, modelConfig.embeddings, modelConfig.heads[currentHead]);
         clickState = null;
-        // Force clear by temporarily nulling clickState before calling clearAllHighlights
-        clearHoverState();
-        renderHeatmap();
-        const content = document.getElementById('computation-content');
-        content.textContent = '';
-        const p = document.createElement('p');
-        p.className = 'placeholder';
-        p.textContent = 'Hover a token or click a heatmap cell';
-        content.appendChild(p);
+        clearAllHighlights();
     });
 });
 

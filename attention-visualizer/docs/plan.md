@@ -8,14 +8,14 @@
 
 **Tech Stack:** Vanilla HTML/CSS/JS, SVG for attention lines, Canvas for heatmap.
 
-**Spec:** `docs/superpowers/specs/2026-03-24-attention-visualizer-design.md`
+**Spec:** `docs/design.md`
 
 ---
 
 ### Task 1: Data Layer — PRNG, Embeddings, Matrix Math
 
 **Files:**
-- Create: `attention-visualizer-enhanced.html` (fresh rewrite — replaces existing file)
+- Create: `attention-visualizer.html`
 
 Build the math foundation as pure functions inside a `<script>` block. No DOM work yet — just functions and a console smoke test.
 
@@ -173,7 +173,7 @@ Open in browser, check console: embeddings should be 8-dim unit vectors, weights
 - [ ] **Step 6: Commit**
 
 ```bash
-git add attention-visualizer-enhanced.html
+git add attention-visualizer/attention-visualizer.html
 git commit -m "feat: attention visualizer data layer with PRNG, Q/K/V, softmax"
 ```
 
@@ -182,7 +182,7 @@ git commit -m "feat: attention visualizer data layer with PRNG, Q/K/V, softmax"
 ### Task 2: HTML Structure + Dark Mode CSS
 
 **Files:**
-- Modify: `attention-visualizer-enhanced.html`
+- Modify: `attention-visualizer/attention-visualizer.html`
 
 Build the three-panel layout shell with dark mode styling. No interactivity yet — just the DOM structure and CSS.
 
@@ -252,7 +252,7 @@ Open file — should see dark background, head selector pills, empty text area, 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add attention-visualizer-enhanced.html
+git add attention-visualizer/attention-visualizer.html
 git commit -m "feat: three-panel layout with dark mode CSS"
 ```
 
@@ -261,7 +261,7 @@ git commit -m "feat: three-panel layout with dark mode CSS"
 ### Task 3: Text Display Panel with Hover Lines
 
 **Files:**
-- Modify: `attention-visualizer-enhanced.html`
+- Modify: `attention-visualizer/attention-visualizer.html`
 
 Render tokens as interactive spans. Hovering a token draws SVG attention lines and highlights attended tokens.
 
@@ -438,7 +438,7 @@ Hover over tokens — should see orange/red SVG lines connecting to attended tok
 - [ ] **Step 5: Commit**
 
 ```bash
-git add attention-visualizer-enhanced.html
+git add attention-visualizer/attention-visualizer.html
 git commit -m "feat: text display with hover-driven attention lines"
 ```
 
@@ -447,7 +447,7 @@ git commit -m "feat: text display with hover-driven attention lines"
 ### Task 4: Heatmap Matrix with Causal Mask
 
 **Files:**
-- Modify: `attention-visualizer-enhanced.html`
+- Modify: `attention-visualizer/attention-visualizer.html`
 
 Render the N*N attention matrix on a canvas element. Grey out upper triangle (causal mask). Highlight row on hover.
 
@@ -484,7 +484,7 @@ Should see 10x10 grid with token labels. Lower triangle shows orange/yellow heat
 - [ ] **Step 5: Commit**
 
 ```bash
-git add attention-visualizer-enhanced.html
+git add attention-visualizer/attention-visualizer.html
 git commit -m "feat: heatmap matrix with causal mask and row highlighting"
 ```
 
@@ -493,7 +493,7 @@ git commit -m "feat: heatmap matrix with causal mask and row highlighting"
 ### Task 5: Computation Panel
 
 **Files:**
-- Modify: `attention-visualizer-enhanced.html`
+- Modify: `attention-visualizer/attention-visualizer.html`
 
 Two modes: summary (full softmax vector for a query) and drill-down (Q, K, dot product, scale, softmax for a specific pair).
 
@@ -530,7 +530,7 @@ Hover a token — computation panel shows bar chart of attention distribution. C
 - [ ] **Step 5: Commit**
 
 ```bash
-git add attention-visualizer-enhanced.html
+git add attention-visualizer/attention-visualizer.html
 git commit -m "feat: computation panel with summary and drill-down modes"
 ```
 
@@ -539,7 +539,7 @@ git commit -m "feat: computation panel with summary and drill-down modes"
 ### Task 6: Interaction Coordination — Hover vs Click State
 
 **Files:**
-- Modify: `attention-visualizer-enhanced.html`
+- Modify: `attention-visualizer/attention-visualizer.html`
 
 Implement the two-mode interaction system: ephemeral hover and persistent click, with click taking precedence.
 
@@ -620,7 +620,7 @@ Complete the canvas click handler from Task 4 to call `setClickState(row, col)` 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add attention-visualizer-enhanced.html
+git add attention-visualizer/attention-visualizer.html
 git commit -m "feat: hover vs click state management across panels"
 ```
 
@@ -629,7 +629,7 @@ git commit -m "feat: hover vs click state management across panels"
 ### Task 7: Head Selector + Semantic Head Tuning
 
 **Files:**
-- Modify: `attention-visualizer-enhanced.html`
+- Modify: `attention-visualizer/attention-visualizer.html`
 
 Wire up the head selector pills. Tune Head 2 matrices to produce interesting semantic patterns for the demo sentence.
 
@@ -668,7 +668,7 @@ Switch between heads — heatmap pattern should visibly change. Head 1 shows dia
 - [ ] **Step 4: Commit**
 
 ```bash
-git add attention-visualizer-enhanced.html
+git add attention-visualizer/attention-visualizer.html
 git commit -m "feat: head selector with tuned positional and semantic heads"
 ```
 
@@ -677,7 +677,7 @@ git commit -m "feat: head selector with tuned positional and semantic heads"
 ### Task 8: Polish + Final Verification
 
 **Files:**
-- Modify: `attention-visualizer-enhanced.html`
+- Modify: `attention-visualizer/attention-visualizer.html`
 
 - [ ] **Step 1: SVG sizing fix**
 
@@ -732,6 +732,6 @@ Verify all interactions work:
 Remove temporary console.log statements from Task 1 Step 5 (keep the assert block). Final commit:
 
 ```bash
-git add attention-visualizer-enhanced.html
+git add attention-visualizer/attention-visualizer.html
 git commit -m "feat: polish, SVG sizing, final verification"
 ```
