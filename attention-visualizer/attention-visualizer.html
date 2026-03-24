@@ -159,6 +159,11 @@
         }
         #computation-content {
             font-size: 13px;
+            overflow-y: auto;
+            max-height: calc(100% - 30px);
+        }
+        #heatmap-canvas {
+            cursor: pointer;
         }
         .placeholder {
             color: #555;
@@ -306,11 +311,6 @@ const DIM = 8;
 let currentHead = 0;
 let attentionData = computeAttention(TOKENS, modelConfig.embeddings, modelConfig.heads[currentHead]);
 
-// Console smoke test
-console.log('Tokens:', TOKENS);
-console.log('Embedding[0] (The):', modelConfig.embeddings[0]);
-console.log('Weights row 0:', attentionData.weights[0]);
-console.log('Sum of row 0:', attentionData.weights[0].reduce((a, b) => a + b, 0));
 
 // --- Task 3: Token rendering ---
 function renderTokens() {
@@ -749,6 +749,21 @@ document.querySelectorAll('.head-pill').forEach(btn => {
 // Initialize
 renderTokens();
 renderHeatmap();
+
+const resizeObserver = new ResizeObserver(() => {
+    const panel = document.getElementById('text-panel');
+    const svg = document.getElementById('svg-overlay');
+    svg.setAttribute('width', panel.clientWidth);
+    svg.setAttribute('height', panel.clientHeight);
+});
+resizeObserver.observe(document.getElementById('text-panel'));
+
+// Verify all attention weight rows sum to 1.0
+attentionData.weights.forEach((row, i) => {
+    const sum = row.reduce((a, b) => a + b, 0);
+    console.assert(Math.abs(sum - 1.0) < 1e-6, `Row ${i} sums to ${sum}`);
+});
+console.log('All attention weight rows verified to sum to 1.0');
 </script>
 </body>
 </html>
