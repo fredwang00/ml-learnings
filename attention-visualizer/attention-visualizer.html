@@ -383,7 +383,94 @@ function drawSingleAttentionLine(queryIdx, keyIdx) {
 // --- State stubs (replaced in later tasks) ---
 let clickState = null;
 
-function renderHeatmap() {} // no-op until Task 4
+let heatmapCellSize = 0;
+let heatmapLabelOffset = 0;
+
+function weightToColor(w) {
+    const r = Math.round(w * 245 + 10);
+    const g = Math.round(w * 166);
+    const b = Math.round(w * 35);
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+function renderHeatmap(highlightRow = -1, highlightCell = null) {
+    const canvas = document.getElementById('heatmap-canvas');
+    const ctx = canvas.getContext('2d');
+    const n = TOKENS.length;
+    const weights = attentionData.weights;
+
+    const cellSize = Math.min(Math.floor((canvas.parentElement.clientWidth - 80) / (TOKENS.length + 1)), 36);
+    heatmapCellSize = cellSize;
+    const labelOffset = cellSize + 20;
+    heatmapLabelOffset = labelOffset;
+
+    canvas.width = labelOffset + n * cellSize + 10;
+    canvas.height = labelOffset + n * cellSize + 10;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '11px monospace';
+
+    // Column labels (key tokens) rotated -45 degrees
+    for (let j = 0; j < n; j++) {
+        ctx.save();
+        ctx.translate(labelOffset + j * cellSize + cellSize / 2, labelOffset - 4);
+        ctx.rotate(-Math.PI / 4);
+        ctx.fillStyle = '#888';
+        ctx.textAlign = 'left';
+        ctx.fillText(TOKENS[j], 0, 0);
+        ctx.restore();
+    }
+
+    // Row labels (query tokens)
+    for (let i = 0; i < n; i++) {
+        ctx.fillStyle = (i === highlightRow) ? '#e94560' : '#888';
+        ctx.textAlign = 'right';
+        ctx.fillText(TOKENS[i], labelOffset - 4, labelOffset + i * cellSize + cellSize / 2 + 4);
+    }
+
+    // Cells
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+            if (j > i) {
+                ctx.fillStyle = 'rgba(50, 50, 50, 0.5)';
+            } else {
+                ctx.fillStyle = weightToColor(weights[i][j]);
+            }
+            ctx.fillRect(labelOffset + j * cellSize + 1, labelOffset + i * cellSize + 1, cellSize - 2, cellSize - 2);
+        }
+    }
+
+    // Highlight cell
+    if (highlightCell) {
+        const [row, col] = highlightCell;
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(labelOffset + col * cellSize + 1, labelOffset + row * cellSize + 1, cellSize - 2, cellSize - 2);
+    }
+
+    // Highlight row
+    if (highlightRow >= 0) {
+        ctx.strokeStyle = 'rgba(233, 69, 96, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(labelOffset + 1, labelOffset + highlightRow * cellSize + 1, n * cellSize - 2, cellSize - 2);
+    }
+}
+
+document.getElementById('heatmap-canvas').addEventListener('click', e => {
+    const canvas = e.target;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    const col = Math.floor((x - heatmapLabelOffset) / heatmapCellSize);
+    const row = Math.floor((y - heatmapLabelOffset) / heatmapCellSize);
+    if (row >= 0 && row < TOKENS.length && col >= 0 && col <= row) {
+        setClickState(row, col);
+    }
+});
+
+function setClickState() {} // stub until Task 6
 function renderComputationSummary() {} // no-op until Task 5
 
 function clearHoverState() {
@@ -411,6 +498,7 @@ function hoverQuery(queryIdx) {
     if (clickState) return;
     highlightTokens(queryIdx);
     drawAttentionLines(queryIdx);
+    renderHeatmap(queryIdx);
 }
 
 // --- Token highlighting ---
@@ -448,6 +536,7 @@ document.getElementById('text-panel').addEventListener('mouseleave', () => {
 
 // Initialize
 renderTokens();
+renderHeatmap();
 </script>
 </body>
 </html>
