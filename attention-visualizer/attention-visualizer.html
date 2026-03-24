@@ -45,6 +45,31 @@
             background: #e94560;
             color: white;
         }
+        #temperature-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: #888;
+        }
+        #temperature-control label {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 11px;
+        }
+        #temp-slider {
+            width: 180px;
+            accent-color: #e94560;
+            cursor: pointer;
+        }
+        #temp-value {
+            color: #f5a623;
+            font-family: monospace;
+            font-size: 13px;
+            min-width: 32px;
+        }
         #text-panel {
             position: relative;
             background: #16213e;
@@ -181,6 +206,12 @@
         <button class="head-pill active" data-head="0">Head 1 (positional)</button>
         <button class="head-pill" data-head="1">Head 2 (semantic)</button>
     </div>
+    <div id="temperature-control">
+        <label for="temp-slider">Temperature</label>
+        <input type="range" id="temp-slider" min="0.1" max="5" step="0.05" value="1.0">
+        <span id="temp-value">1.00</span>
+        <span class="tooltip">?<span class="tooltip-text">Controls softmax sharpness. Low = confident (one-hot). High = uncertain (uniform). Default √d_k scaling = T=1.0</span></span>
+    </div>
     <div id="text-panel">
         <div id="text-display"></div>
         <svg id="svg-overlay"></svg>
@@ -237,15 +268,16 @@ function dot(a, b) {
     return a.reduce((s, v, i) => s + v * b[i], 0);
 }
 
-function softmax(scores, queryIdx) {
-    const masked = scores.map((s, i) => i <= queryIdx ? s : -Infinity);
+function softmax(scores, queryIdx, temperature = 1.0) {
+    const scaled = scores.map(s => s / temperature);
+    const masked = scaled.map((s, i) => i <= queryIdx ? s : -Infinity);
     const max = Math.max(...masked.filter(s => s !== -Infinity));
     const exps = masked.map(s => s === -Infinity ? 0 : Math.exp(s - max));
     const sum = exps.reduce((a, b) => a + b, 0);
     return exps.map(e => e / sum);
 }
 
-function computeAttention(tokens, embeddings, head) {
+function computeAttention(tokens, embeddings, head, temperature = 1.0) {
     const dim = embeddings[0].length;
     const scale = Math.sqrt(dim);
     const n = tokens.length;
@@ -253,8 +285,9 @@ function computeAttention(tokens, embeddings, head) {
     const K = embeddings.map(e => matVecMul(head.Wk, e));
     const weights = [];
     for (let i = 0; i < n; i++) {
+        // Raw scores already divided by √d_k; temperature further scales them
         const scores = K.map(k => dot(Q[i], k) / scale);
-        weights.push(softmax(scores, i));
+        weights.push(softmax(scores, i, temperature));
     }
     return { weights, Q, K };
 }
@@ -310,7 +343,8 @@ const TOKENS = modelConfig.tokens;
 const DIM = 8;
 
 let currentHead = 0;
-let attentionData = computeAttention(TOKENS, modelConfig.embeddings, modelConfig.heads[currentHead]);
+let temperature = 1.0;
+let attentionData = computeAttention(TOKENS, modelConfig.embeddings, modelConfig.heads[currentHead], temperature);
 
 
 // --- Token rendering ---
@@ -559,6 +593,7 @@ function renderComputationDrilldown(queryIdx, keyIdx) {
     const K = attentionData.K[keyIdx];
     const rawScore = dot(Q, K);
     const scaledScore = rawScore / Math.sqrt(DIM);
+    const tempScaledScore = scaledScore / temperature;
     const weights = attentionData.weights[queryIdx];
 
     // Header
@@ -620,9 +655,18 @@ function renderComputationDrilldown(queryIdx, keyIdx) {
     dotSection.appendChild(dotLine);
 
     const scaleLine = document.createElement('div');
-    scaleLine.style.cssText = 'color: #f5a623; font-size: 12px; margin-top: 4px;';
+    scaleLine.style.cssText = 'color: #ccc; font-size: 12px; margin-top: 4px;';
     scaleLine.textContent = `/ √${DIM} = ${scaledScore.toFixed(4)}`;
     dotSection.appendChild(scaleLine);
+
+    const tempLine = document.createElement('div');
+    tempLine.style.cssText = 'color: #f5a623; font-size: 12px; margin-top: 4px;';
+    if (temperature !== 1.0) {
+        tempLine.textContent = `/ T(${temperature.toFixed(2)}) = ${tempScaledScore.toFixed(4)}`;
+    } else {
+        tempLine.textContent = `× T=1.0 (no change)`;
+    }
+    dotSection.appendChild(tempLine);
 
     container.appendChild(dotSection);
 
@@ -736,10 +780,26 @@ document.querySelectorAll('.head-pill').forEach(btn => {
         currentHead = parseInt(btn.dataset.head, 10);
         document.querySelectorAll('.head-pill').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        attentionData = computeAttention(TOKENS, modelConfig.embeddings, modelConfig.heads[currentHead]);
+        attentionData = computeAttention(TOKENS, modelConfig.embeddings, modelConfig.heads[currentHead], temperature);
         clickState = null;
         clearAllHighlights();
     });
+});
+
+function recomputeAndRefresh() {
+    attentionData = computeAttention(TOKENS, modelConfig.embeddings, modelConfig.heads[currentHead], temperature);
+    if (clickState) {
+        updateAllPanels();
+    } else {
+        renderHeatmap();
+        // If hovering, the next mouseover will pick up new weights
+    }
+}
+
+document.getElementById('temp-slider').addEventListener('input', e => {
+    temperature = parseFloat(e.target.value);
+    document.getElementById('temp-value').textContent = temperature.toFixed(2);
+    recomputeAndRefresh();
 });
 
 // Initialize
