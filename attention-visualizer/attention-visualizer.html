@@ -75,7 +75,8 @@
             border-radius: 4px;
             cursor: pointer;
             transition: 0.15s ease;
-            border: 3px solid transparent;
+            outline: 3px solid transparent;
+            outline-offset: -3px;
             color: #ccc;
         }
         .token:hover {
@@ -660,8 +661,8 @@ function renderComputationDrilldown(queryIdx, keyIdx) {
 function clearHoverState() {
     document.querySelectorAll('.token').forEach(s => {
         s.classList.remove('active', 'key-highlight');
-        s.style.borderColor = 'transparent';
-        s.style.borderWidth = '';
+        s.style.outlineColor = 'transparent';
+        s.style.outlineWidth = '';
     });
     const svg = document.getElementById('svg-overlay');
     while (svg.firstChild) svg.removeChild(svg.firstChild);
@@ -691,8 +692,8 @@ function hoverQuery(queryIdx) {
 function highlightTokens(queryIdx) {
     document.querySelectorAll('.token').forEach(s => {
         s.classList.remove('active', 'key-highlight');
-        s.style.borderColor = 'transparent';
-        s.style.borderWidth = '';
+        s.style.outlineColor = 'transparent';
+        s.style.outlineWidth = '';
     });
     const querySpan = document.getElementById(`token-${queryIdx}`);
     if (querySpan) querySpan.classList.add('active');
@@ -702,8 +703,8 @@ function highlightTokens(queryIdx) {
         if (w < 0.01 || keyIdx === queryIdx || keyIdx > queryIdx) return;
         const span = document.getElementById(`token-${keyIdx}`);
         if (span) {
-            span.style.borderColor = '#f5a623';
-            span.style.borderWidth = `${1 + w * 3}px`;
+            span.style.outlineColor = '#f5a623';
+            span.style.outlineWidth = `${1 + w * 3}px`;
         }
     });
 }
