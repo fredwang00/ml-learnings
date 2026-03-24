@@ -271,15 +271,25 @@ function createPositionalHead() {
 }
 
 function createSemanticHead() {
-    const Wq = generateMatrix(100);
-    const Wk = generateMatrix(101);
+    const Wq = generateMatrix(200);
+    const Wk = generateMatrix(201);
+    // Create stronger off-diagonal cross-terms
+    // This encourages attention to spread beyond local neighbors
     for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 8; j++) {
-            Wq[i][j] *= 1.5;
-            Wk[i][j] *= 1.5;
+            // Amplify off-diagonal terms
+            if (i !== j) {
+                Wq[i][j] *= 2.5;
+                Wk[i][j] *= 2.5;
+            }
+            // Reduce diagonal dominance (opposite of positional head)
+            if (i === j) {
+                Wq[i][j] *= 0.3;
+                Wk[i][j] *= 0.3;
+            }
         }
     }
-    return { Wq, Wk, Wv: generateMatrix(102) };
+    return { Wq, Wk, Wv: generateMatrix(202) };
 }
 
 // Pluggable data config — matches spec interface
@@ -715,6 +725,25 @@ document.addEventListener('keydown', e => {
         clickState = null;
         clearAllHighlights();
     }
+});
+
+document.querySelectorAll('.head-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+        currentHead = parseInt(btn.dataset.head, 10);
+        document.querySelectorAll('.head-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        attentionData = computeAttention(TOKENS, modelConfig.embeddings, modelConfig.heads[currentHead]);
+        clickState = null;
+        // Force clear by temporarily nulling clickState before calling clearAllHighlights
+        clearHoverState();
+        renderHeatmap();
+        const content = document.getElementById('computation-content');
+        content.textContent = '';
+        const p = document.createElement('p');
+        p.className = 'placeholder';
+        p.textContent = 'Hover a token or click a heatmap cell';
+        content.appendChild(p);
+    });
 });
 
 // Initialize
