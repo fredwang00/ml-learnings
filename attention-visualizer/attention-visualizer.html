@@ -87,8 +87,6 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
             pointer-events: none;
             z-index: 5;
             overflow: visible;
@@ -362,6 +360,13 @@ function renderTokens() {
 }
 
 // --- SVG line drawing helpers ---
+function syncSvgSize() {
+    const panel = document.getElementById('text-panel');
+    const svg = document.getElementById('svg-overlay');
+    svg.setAttribute('width', panel.clientWidth);
+    svg.setAttribute('height', panel.clientHeight);
+}
+
 function getTokenCenter(index) {
     const span = document.getElementById(`token-${index}`);
     const panel = document.getElementById('text-panel');
@@ -375,6 +380,7 @@ function getTokenCenter(index) {
 }
 
 function drawAttentionLines(queryIdx) {
+    syncSvgSize();
     const svg = document.getElementById('svg-overlay');
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     const weights = attentionData.weights[queryIdx];
@@ -404,6 +410,7 @@ function drawAttentionLines(queryIdx) {
 }
 
 function drawSingleAttentionLine(queryIdx, keyIdx) {
+    syncSvgSize();
     const svg = document.getElementById('svg-overlay');
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     const w = attentionData.weights[queryIdx][keyIdx];
@@ -804,14 +811,10 @@ document.getElementById('temp-slider').addEventListener('input', e => {
 
 // Initialize
 renderTokens();
+syncSvgSize();
 renderHeatmap();
 
-const resizeObserver = new ResizeObserver(() => {
-    const panel = document.getElementById('text-panel');
-    const svg = document.getElementById('svg-overlay');
-    svg.setAttribute('width', panel.clientWidth);
-    svg.setAttribute('height', panel.clientHeight);
-});
+const resizeObserver = new ResizeObserver(() => syncSvgSize());
 resizeObserver.observe(document.getElementById('text-panel'));
 
 // Verify all attention weight rows sum to 1.0
