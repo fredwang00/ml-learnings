@@ -471,7 +471,160 @@ document.getElementById('heatmap-canvas').addEventListener('click', e => {
 });
 
 function setClickState() {} // stub until Task 6
-function renderComputationSummary() {} // no-op until Task 5
+function renderComputationSummary(queryIdx) {
+    const container = document.getElementById('computation-content');
+    container.textContent = '';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'color: #e94560; margin-bottom: 12px; font-size: 14px;';
+    header.textContent = `Query: "${TOKENS[queryIdx]}" (token ${queryIdx})`;
+    container.appendChild(header);
+
+    const subheader = document.createElement('div');
+    subheader.style.cssText = 'color: #888; font-size: 11px; margin-bottom: 8px;';
+    subheader.textContent = 'Attention distribution (softmax output):';
+    container.appendChild(subheader);
+
+    const weights = attentionData.weights[queryIdx];
+    for (let j = 0; j <= queryIdx; j++) {
+        const w = weights[j];
+        if (w < 0.001) continue;
+
+        const row = document.createElement('div');
+        row.style.cssText = 'display: flex; align-items: center; margin-bottom: 3px; gap: 8px;';
+
+        const label = document.createElement('span');
+        label.style.cssText = 'width: 60px; text-align: right; font-size: 11px; color: #888; flex-shrink: 0;';
+        label.textContent = TOKENS[j];
+
+        const barContainer = document.createElement('div');
+        barContainer.style.cssText = 'flex: 1; height: 14px; background: #0d1526; border-radius: 2px; overflow: hidden;';
+
+        const bar = document.createElement('div');
+        bar.style.cssText = `width: ${w * 100}%; height: 100%; background: ${weightToColor(w)}; border-radius: 2px; transition: width 0.2s;`;
+
+        const value = document.createElement('span');
+        value.style.cssText = 'width: 40px; font-size: 11px; color: #f5a623; flex-shrink: 0;';
+        value.textContent = w.toFixed(3);
+
+        barContainer.appendChild(bar);
+        row.appendChild(label);
+        row.appendChild(barContainer);
+        row.appendChild(value);
+        container.appendChild(row);
+    }
+}
+
+function renderComputationDrilldown(queryIdx, keyIdx) {
+    const container = document.getElementById('computation-content');
+    container.textContent = '';
+
+    const Q = attentionData.Q[queryIdx];
+    const K = attentionData.K[keyIdx];
+    const rawScore = dot(Q, K);
+    const scaledScore = rawScore / Math.sqrt(DIM);
+    const weights = attentionData.weights[queryIdx];
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = 'color: #e94560; margin-bottom: 12px; font-size: 14px;';
+    header.textContent = `"${TOKENS[queryIdx]}" → "${TOKENS[keyIdx]}"`;
+    container.appendChild(header);
+
+    // Helper to render a vector as labeled bars
+    function renderVector(name, vec, color) {
+        const section = document.createElement('div');
+        section.style.cssText = 'margin-bottom: 10px;';
+
+        const label = document.createElement('div');
+        label.style.cssText = `color: ${color}; font-size: 12px; margin-bottom: 4px;`;
+        label.textContent = `${name} vector:`;
+        section.appendChild(label);
+
+        const maxAbs = Math.max(...vec.map(Math.abs), 0.001);
+        vec.forEach((v, i) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display: flex; align-items: center; height: 12px; margin-bottom: 1px; gap: 4px;';
+
+            const idx = document.createElement('span');
+            idx.style.cssText = 'width: 16px; font-size: 9px; color: #555; text-align: right;';
+            idx.textContent = i;
+
+            const barBg = document.createElement('div');
+            barBg.style.cssText = 'flex: 1; height: 8px; background: #0d1526; border-radius: 2px; position: relative;';
+
+            const bar = document.createElement('div');
+            const pct = Math.abs(v) / maxAbs * 50;
+            const left = v >= 0 ? 50 : 50 - pct;
+            bar.style.cssText = `position: absolute; top: 0; left: ${left}%; width: ${pct}%; height: 100%; background: ${color}; opacity: 0.7; border-radius: 2px;`;
+
+            const val = document.createElement('span');
+            val.style.cssText = 'width: 45px; font-size: 9px; color: #888; text-align: right;';
+            val.textContent = v.toFixed(3);
+
+            barBg.appendChild(bar);
+            row.appendChild(idx);
+            row.appendChild(barBg);
+            row.appendChild(val);
+            section.appendChild(row);
+        });
+        container.appendChild(section);
+    }
+
+    renderVector('Q', Q, '#8be9fd');
+    renderVector('K', K, '#50fa7b');
+
+    // Dot product
+    const dotSection = document.createElement('div');
+    dotSection.style.cssText = 'margin: 12px 0; padding: 8px; background: #0d1526; border-radius: 4px;';
+
+    const dotLine = document.createElement('div');
+    dotLine.style.cssText = 'color: #ccc; font-size: 12px;';
+    dotLine.textContent = `Q · K = ${rawScore.toFixed(4)}`;
+    dotSection.appendChild(dotLine);
+
+    const scaleLine = document.createElement('div');
+    scaleLine.style.cssText = 'color: #f5a623; font-size: 12px; margin-top: 4px;';
+    scaleLine.textContent = `/ √${DIM} = ${scaledScore.toFixed(4)}`;
+    dotSection.appendChild(scaleLine);
+
+    container.appendChild(dotSection);
+
+    // Softmax distribution
+    const softmaxLabel = document.createElement('div');
+    softmaxLabel.style.cssText = 'color: #888; font-size: 11px; margin-bottom: 6px;';
+    softmaxLabel.textContent = 'Softmax distribution:';
+    container.appendChild(softmaxLabel);
+
+    for (let j = 0; j <= queryIdx; j++) {
+        const w = weights[j];
+        if (w < 0.001) continue;
+
+        const row = document.createElement('div');
+        row.style.cssText = 'display: flex; align-items: center; margin-bottom: 3px; gap: 8px;';
+
+        const label = document.createElement('span');
+        label.style.cssText = `width: 60px; text-align: right; font-size: 11px; flex-shrink: 0; color: ${j === keyIdx ? '#f5a623' : '#888'};`;
+        label.textContent = TOKENS[j];
+
+        const barContainer = document.createElement('div');
+        barContainer.style.cssText = 'flex: 1; height: 14px; background: #0d1526; border-radius: 2px; overflow: hidden;';
+
+        const bar = document.createElement('div');
+        const barColor = j === keyIdx ? '#f5a623' : weightToColor(w);
+        bar.style.cssText = `width: ${w * 100}%; height: 100%; background: ${barColor}; border-radius: 2px;`;
+
+        const value = document.createElement('span');
+        value.style.cssText = `width: 40px; font-size: 11px; flex-shrink: 0; color: ${j === keyIdx ? '#f5a623' : '#888'};`;
+        value.textContent = w.toFixed(3);
+
+        barContainer.appendChild(bar);
+        row.appendChild(label);
+        row.appendChild(barContainer);
+        row.appendChild(value);
+        container.appendChild(row);
+    }
+}
 
 function clearHoverState() {
     document.querySelectorAll('.token').forEach(s => {
@@ -499,6 +652,7 @@ function hoverQuery(queryIdx) {
     highlightTokens(queryIdx);
     drawAttentionLines(queryIdx);
     renderHeatmap(queryIdx);
+    renderComputationSummary(queryIdx);
 }
 
 // --- Token highlighting ---
