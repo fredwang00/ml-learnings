@@ -470,7 +470,28 @@ document.getElementById('heatmap-canvas').addEventListener('click', e => {
     }
 });
 
-function setClickState() {} // stub until Task 6
+function setClickState(queryIdx, keyIdx) {
+    if (clickState && clickState.queryIdx === queryIdx && clickState.keyIdx === keyIdx) {
+        clickState = null;
+    } else {
+        clickState = { queryIdx, keyIdx };
+    }
+    updateAllPanels();
+}
+
+function updateAllPanels() {
+    if (clickState) {
+        const { queryIdx, keyIdx } = clickState;
+        highlightTokens(queryIdx);
+        const keySpan = document.getElementById(`token-${keyIdx}`);
+        if (keySpan) keySpan.classList.add('key-highlight');
+        drawSingleAttentionLine(queryIdx, keyIdx);
+        renderHeatmap(queryIdx, [queryIdx, keyIdx]);
+        renderComputationDrilldown(queryIdx, keyIdx);
+    } else {
+        clearAllHighlights();
+    }
+}
 function renderComputationSummary(queryIdx) {
     const container = document.getElementById('computation-content');
     container.textContent = '';
@@ -637,6 +658,7 @@ function clearHoverState() {
 }
 
 function clearAllHighlights() {
+    if (clickState) return;
     clearHoverState();
     renderHeatmap();
     const content = document.getElementById('computation-content');
@@ -686,6 +708,13 @@ document.getElementById('text-display').addEventListener('mouseover', e => {
 
 document.getElementById('text-panel').addEventListener('mouseleave', () => {
     if (!clickState) clearAllHighlights();
+});
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && clickState) {
+        clickState = null;
+        clearAllHighlights();
+    }
 });
 
 // Initialize
